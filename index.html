@@ -13,12 +13,14 @@ header h1{margin:0;font-size:18px}
 .bar{max-width:780px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .bar select{padding:6px 10px;border-radius:6px;border:none;font-size:15px}
 .bar .count{margin-left:auto;font-size:14px;opacity:.9}
+.bar .pos{font-size:14px;font-weight:800;background:rgba(255,255,255,.22);padding:3px 11px;border-radius:14px;white-space:nowrap}
 main{max-width:780px;margin:18px auto;padding:0 14px}
 .card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:18px;margin-bottom:18px}
 .meta{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--blue);margin-bottom:8px}
 .alta{color:var(--red)}
 .chead{display:flex;align-items:flex-start;gap:10px}
 .chead .meta{flex:1}
+.qnum{flex:none;background:var(--blue);color:#fff;font-weight:800;font-size:12.5px;padding:3px 10px;border-radius:20px;line-height:1.35;white-space:nowrap}
 .star{cursor:pointer;background:none;border:none;font-size:24px;line-height:1;padding:0;color:#cfd8e3;flex:none;transition:.12s}
 .star:hover{transform:scale(1.15)}
 .star.on{color:#f1c40f}
@@ -69,6 +71,7 @@ main{max-width:780px;margin:18px auto;padding:0 14px}
     </select>
   </label>
   <span class="count" id="count"></span>
+  <span class="pos" id="pos"></span>
 </div></header>
 <main id="app"></main>
 <script>
@@ -100,7 +103,7 @@ function render(){
     (mk!=="si" || starred.has(q._k)));
   document.getElementById("count").textContent = list.length+" preguntas · 🌟 "+starred.size+" marcadas";
   app.innerHTML = "";
-  list.forEach(q=>{
+  list.forEach((q,i)=>{
     const card=document.createElement("div");card.className="card";
     const alta = q.alta_frecuencia?' · <span class="alta">⭐ ALTA FRECUENCIA</span>':'';
     const rep = q.repetida?' · '+q.repetida:'';
@@ -111,6 +114,7 @@ function render(){
     L.forEach(l=>{if(q.razones&&q.razones[l]!==undefined)raz+=`<div class="razon" data-l="${l}"><b>${l.toUpperCase()})</b> ${fmt(q.razones[l])}</div>`;});
     const on = starred.has(q._k);
     card.innerHTML=`<div class="chead">
+        <span class="qnum">Nº ${i+1} / ${list.length}</span>
         <div class="meta">${q.examen} · ${q.tema}${alta}${rep}</div>
         <button class="star${on?' on':''}" title="Marcar como difícil">${on?'★':'☆'}</button>
       </div>
@@ -159,6 +163,22 @@ function render(){
     };
     app.appendChild(card);
   });
+  updatePos();
 }
+// contador en vivo: detecta la tarjeta que está arriba del todo y muestra posición + cuántas quedan
+function updatePos(){
+  const cards=app.querySelectorAll(".card");
+  const pos=document.getElementById("pos");
+  const n=cards.length;
+  if(!n){pos.textContent="";return;}
+  const thr=document.querySelector("header").offsetHeight+10;
+  let cur=0;
+  for(let i=0;i<n;i++){ if(cards[i].getBoundingClientRect().top<=thr) cur=i; else break; }
+  // si estás al final del scroll, fija la última (las últimas tarjetas no llegan a subir hasta arriba)
+  if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4) cur=n-1;
+  pos.textContent=`📍 ${cur+1} / ${n} · quedan ${n-1-cur}`;
+}
+let _ticking=false;
+window.addEventListener("scroll",()=>{ if(!_ticking){_ticking=true;requestAnimationFrame(()=>{updatePos();_ticking=false;});} },{passive:true});
 filtro.onchange=render;frec.onchange=render;marc.onchange=render;render();
 </script></body></html>
